@@ -83,12 +83,15 @@ EOL
 
 # 创建前端 Dockerfile
 cat > frontend/Dockerfile << EOL
-FROM node:18-alpine
+# 构建阶段
+FROM node:18-alpine as builder
 
 WORKDIR /app
 
-# 安装依赖
+# 复制 package.json
 COPY package.json ./
+
+# 安装依赖
 RUN npm install
 
 # 复制源代码
@@ -97,11 +100,41 @@ COPY . .
 # 构建应用
 RUN npm run build
 
-# 使用 nginx 部署
+# 生产阶段
 FROM nginx:alpine
-COPY --from=0 /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
+EOL
+
+# 创建 nginx.conf
+cat > frontend/nginx.conf << EOL
+server {
+    listen 80;
+    server_name localhost;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # 启用gzip压缩
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    # 缓存静态资源
+    location /assets {
+        expires 1y;
+        add_header Cache-Control "public, no-transform";
+    }
+
+    # 安全相关的响应头
+    add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-XSS-Protection "1; mode=block";
+    add_header X-Content-Type-Options "nosniff";
+}
 EOL
 
 # 初始化前端依赖
@@ -146,6 +179,58 @@ cat > package.json << EOL
     "typescript": "^5.0.2",
     "vite": "^4.4.5"
   }
+}
+EOL
+
+# 创建 vite.config.ts
+cat > vite.config.ts << EOL
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 3000
+  }
+})
+EOL
+
+# 创建 tsconfig.json
+cat > tsconfig.json << EOL
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
+EOL
+
+# 创建 tsconfig.node.json
+cat > tsconfig.node.json << EOL
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["vite.config.ts"]
 }
 EOL
 
