@@ -7,15 +7,11 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 Poetry
-RUN curl -sSL https://install.python-poetry.org | python3 -
-
-# 复制项目文件
-COPY pyproject.toml poetry.lock ./
+# 复制依赖文件
+COPY requirements.txt .
 
 # 安装依赖
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-dev --no-interaction --no-ansi
+RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制应用代码
 COPY . .
@@ -25,4 +21,4 @@ RUN mkdir -p /app/data
 
 EXPOSE 8000
 
-CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
