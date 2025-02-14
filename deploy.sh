@@ -38,6 +38,39 @@ FIRST_SUPERUSER=admin@example.com
 FIRST_SUPERUSER_PASSWORD=admin
 EOL
 
+# 创建 docker-compose.yml
+cat > docker-compose.yml << EOL
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:///./data/pmemo.db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
+EOL
+
 # 创建后端 Dockerfile
 cat > backend/Dockerfile << EOL
 FROM python:3.8-slim
@@ -139,6 +172,7 @@ EOL
 
 # 初始化前端依赖
 cd frontend
+mkdir -p src
 cat > package.json << EOL
 {
   "name": "pmemo-frontend",
@@ -232,6 +266,44 @@ cat > tsconfig.node.json << EOL
   },
   "include": ["vite.config.ts"]
 }
+EOL
+
+# 创建 index.html
+cat > index.html << EOL
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PMemo - 现代化备忘录</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+EOL
+
+# 创建 src/main.tsx
+mkdir -p src
+cat > src/main.tsx << EOL
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import './index.css'
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)
+EOL
+
+# 创建 src/index.css
+cat > src/index.css << EOL
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 EOL
 
 cd ..
