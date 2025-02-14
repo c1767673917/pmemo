@@ -1,0 +1,18 @@
+{
+  "name": "pmemo-server",
+  "version": "1.0.0",
+  "description": "A modern memo application backend.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "express": "^4.0.0",
+    "mongoose": "^6.0.0",
+    "dotenv": "^10.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.0"
+  }
+} 
