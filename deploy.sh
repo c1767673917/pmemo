@@ -38,6 +38,49 @@ FIRST_SUPERUSER=admin@example.com
 FIRST_SUPERUSER_PASSWORD=admin
 EOL
 
+# 创建后端 Dockerfile
+cat > backend/Dockerfile << EOL
+FROM python:3.8-slim
+
+WORKDIR /app
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \\
+    curl \\
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制依赖文件
+COPY requirements.txt .
+
+# 安装依赖
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制应用代码
+COPY . .
+
+# 创建数据目录
+RUN mkdir -p /app/data
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+EOL
+
+# 创建 requirements.txt
+cat > backend/requirements.txt << EOL
+fastapi==0.68.1
+uvicorn==0.15.0
+sqlalchemy==1.4.23
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.5
+pydantic==1.8.2
+python-dotenv==0.19.0
+aiosqlite==0.17.0
+email-validator==1.1.3
+python-slugify==5.0.2
+EOL
+
 # 启动应用
 echo "启动应用..."
 docker-compose up -d
